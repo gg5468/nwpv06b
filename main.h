@@ -14,9 +14,9 @@ protected:
  
 class main_window : public vsite::nwp::window {
 private:
-	HFONT font;
+	LOGFONT font = {};
 	COLORREF font_color;
-	number_dialog nd;
+	int range;
 protected:
 	void on_paint(HDC hdc) override;
 	void on_command(int id) override;

@@ -13,7 +13,7 @@ bool number_dialog::on_init_dialog(){
 }
 bool number_dialog::on_ok(){
 	try {
-		range = this->get_real(IDC_EDIT1);
+		range = this->get_int(IDC_EDIT1);
 	}
 	catch(std::runtime_error err) {
 		const char * what = err.what();
@@ -25,30 +25,31 @@ bool number_dialog::on_ok(){
 }
  
 void main_window::on_paint(HDC hdc){
-	int range = nd.get_range();
 	if (range <= 0) {
 		return;
 	}
 
-	RECT parent_rect;
-	GetClientRect(*this, &parent_rect);
+	RECT rc;
+	GetClientRect(*this, &rc);
 
-	int height = parent_rect.bottom / (range + 1);
-	int width = parent_rect.right / (range + 1);
+	int height = rc.bottom / (range + 1);
+	int width = rc.right / (range + 1);
 
 	MoveToEx(hdc, 0, height, 0);
-	LineTo(hdc, parent_rect.right, height);
+	LineTo(hdc, rc.right, height);
 	MoveToEx(hdc, width, 0, 0);
-	LineTo(hdc, width, parent_rect.bottom);
+	LineTo(hdc, width, rc.bottom);
 
+	HFONT f = CreateFontIndirect(&font);
+	if (font.lfHeight == 0) { f = (HFONT)GetStockObject(DEFAULT_GUI_FONT); }
 	SetTextColor(hdc, this->font_color);
 
-	auto old = SelectObject(hdc, this->font);
+	auto old = SelectObject(hdc, f);
 
 	for (int i = 0; i <= range; i++){
 		for (int j = 0; j <= range; j++) {
 			RECT r = { width * j, height * i, (width * j) + width, (height * i) + height };
-			std::wstring wstr = (i == 0 || j == 0) ? std::to_wstring(i | j) : std::to_wstring(i * j);
+			const auto wstr = std::to_wstring(i && j ? i * j : i | j);
 			
 			DrawText(hdc, wstr.c_str(), -1, &r, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 		}
@@ -62,6 +63,7 @@ int number_dialog::get_range() {
 }
 
 void main_window::on_command(int id){
+	number_dialog nd;
 	switch(id){
 		case ID_FONT:
 		{
@@ -79,7 +81,7 @@ void main_window::on_command(int id){
 			lf.lfHeight = -12 * ::GetDeviceCaps(hdc, LOGPIXELSY) / 72;
 
 			if (ChooseFont(&cf)) {
-				this->font = CreateFontIndirect(&lf);
+				this->font = lf;
 				this->font_color = cf.rgbColors;
 				InvalidateRect(*this, 0, TRUE);
 			}
@@ -87,6 +89,7 @@ void main_window::on_command(int id){
 		}
 		case ID_NUMBER:
 			if (nd.do_modal(0, *this) == IDOK) {
+				range = nd.get_range();
 				InvalidateRect(*this, 0, TRUE);
 			}
 			break;	
